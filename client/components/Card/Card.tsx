@@ -4,7 +4,7 @@ import "./Card.css";
 import parse from "html-react-parser";
 
 function Card(props) {
-    const [userPhoto, setUserPhoto] = useState('');
+    const [userPhoto, setUserPhoto] = useState('https://st.depositphotos.com/2101611/3925/v/600/depositphotos_39258143-stock-illustration-businessman-avatar-profile-picture.jpg');
     const [numberLikes, setNumberLikes] = useState();
     const [review, setReview] = useState(false);
 

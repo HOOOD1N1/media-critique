@@ -44,7 +44,7 @@ app.post('/photo/:id', upload.single('uploaded_file'), async(req, res) => {
     // console.log(JSON.stringify(req.file))
     console.log(req.file.filename)
     try {
-        const result = await pool.query(`UPDATE "users" set profile_image=$1 where id=${req.params.id}
+        const result = await pool.query(`UPDATE users set profile_image=$1 where id=${req.params.id}
          returning profile_image;`, [req.file.filename])
         if (result) {
             console.log(result.rows[0])
@@ -58,7 +58,7 @@ app.post('/photo/:id', upload.single('uploaded_file'), async(req, res) => {
 
 app.get('/query/search', async(req, res) => {
     let value = req.query.value;
-    let result = await pool.query(`select id, username as name, profile_image as image from "users" where username like '${value}%';`)
+    let result = await pool.query(`select id, username as name, profile_image as image from users where username like '${value}%';`)
     console.log(result.rows)
     if (result.rows) res.send(JSON.stringify({ results: result.rows }))
 });
@@ -67,7 +67,7 @@ app.post('/main/user/:id', async(req, res) => {
     var userId = req.params.id;
     console.log(userId);
     try {
-        const result = await pool.query('SELECT username,profile_image FROM "users" WHERE id=$1;', [userId]);
+        const result = await pool.query('SELECT username,profile_image FROM users WHERE id=$1;', [userId]);
         if (result) {
             console.log(result.rows[0])
             res.status(200).send(JSON.stringify(result.rows[0]))
@@ -105,8 +105,8 @@ app.post('/user/:user/comments', async(req, res) => {
     var id = req.params.user;
     try {
         var results = await pool.query(`SELECT content, profile_image, comments.creation_date,
-         comments.id as postId, "users".username, "users".id from comments join "users" 
-         on comments.author_id = "users".id where "users".id=$1 ORDER BY creation_date DESC;`, [id]);
+         comments.id as postId, users.username, users.id from comments join users 
+         on comments.author_id = users.id where users.id=$1 ORDER BY creation_date DESC;`, [id]);
         if (results) {
             res.send({
                 status: 'success',
@@ -127,8 +127,8 @@ app.post('/user/:user/reviews', async(req, res) => {
     var id = req.params.user;
     try {
         var results = await pool.query(`SELECT content,profile_image,review, reviews.creation_date,
-         reviews.id as postId, "users".username, "users".id from reviews join "users" 
-         on reviews.author_id = "users".id where "users".id=$1 ORDER BY creation_date DESC;`, [id]);
+         reviews.id as postId, users.username, users.id from reviews join users 
+         on reviews.author_id = users.id where users.id=$1 ORDER BY creation_date DESC;`, [id]);
         if (results) {
             res.send({
                 status: 'success',
@@ -147,8 +147,8 @@ app.post('/user/:user/reviews', async(req, res) => {
 
 app.post('/posts', async(req, res) => {
     try {
-        var results = await pool.query(`SELECT content, title, profile_image, posts.creation_date, posts.id as postId, "users".username,
-         "users".id from posts join "users" on posts.author_id = "users".id ORDER BY creation_date DESC;`);
+        var results = await pool.query(`SELECT content, title, profile_image, posts.creation_date, posts.id as postId, users.username,
+         users.id from posts join users on posts.author_id = users.id ORDER BY creation_date DESC;`);
         if (results) {
 
             res.send({
@@ -172,8 +172,8 @@ app.post('/post/:postId/comments', async(req, res) => {
     try {
 
         var results = await pool.query(`SELECT content, profile_image, comments.creation_date,
-         comments.id as postId, "users".username, "users".id from comments
-        join "users" on comments.author_id = "users".id WHERE comments.post_id = $1 ORDER BY creation_date;`, [postId]);
+         comments.id as postId, users.username, users.id from comments
+        join users on comments.author_id = users.id WHERE comments.post_id = $1 ORDER BY creation_date;`, [postId]);
         if (results) {
 
             res.send({
@@ -196,7 +196,7 @@ app.post('/post/:postId/reviews', async(req, res) => {
     var postId = req.params.postId;
     try {
         var results = await pool.query(`SELECT content,profile_image, reviews.creation_date,reviews.review, reviews.id as postId,
-         "users".username, "users".id from reviews join "users" on reviews.author_id = "users".id WHERE reviews.post_id = $1
+         users.username, users.id from reviews join users on reviews.author_id = users.id WHERE reviews.post_id = $1
           ORDER BY creation_date ;`, [postId]);
         if (results) {
             res.send({
@@ -218,20 +218,17 @@ app.post('/userprofile/user/:id', async(req, res) => {
     var userId = req.params.id;
 
     try {
-        const result1 = await pool.query(`SELECT username, profile_image FROM "users" WHERE id=${userId};`);
+        const result1 = await pool.query(`SELECT username, profile_image FROM users WHERE id=${userId};`);
         const result2 = await pool.query(`SELECT count(*) as comment_count from comments where author_id=${userId};`);
-        const result3 = await pool.query(`SELECT count(*) as posts_count FROM posts WHERE author_id=${userId};`);
-        const result4 = await pool.query(`SELECT count(*) as reviews_count FROM reviews WHERE author_id=${userId};`);
-        if (result1 && result2 && result3 && result4) {
+        const result3 = await pool.query(`SELECT count(*) as reviews_count FROM reviews WHERE author_id=${userId};`);
+        if (result1 && result2 && result3) {
             const username = result1.rows[0];
             const comments = result2.rows[0];
-            const posts = result3.rows[0];
-            const reviews = result4.rows[0];
+            const reviews = result3.rows[0];
             const payload = {
                 profile_image: username.profile_image,
                 username: username.username,
                 comments,
-                posts,
                 reviews
             };
             res.status(200).send(payload)
@@ -253,20 +250,20 @@ app.post('/users', async(req, res) => {
     const password = 123;
     const date = new Date();
     const result = await pool.query(
-        'INSERT INTO "users" (id, username, email, password, creation_date) VALUES ($1, $2, $3, $4, $5)', [id, name, email, password, date])
+        'INSERT INTO users (id, username, email, password, creation_date) VALUES ($1, $2, $3, $4, $5)', [id, name, email, password, date])
 
     res.status(201).send(`User added with ID: ${result.insertId}`)
 
 });
 app.get('/users_all', async(req, res) => {
-    const result = await pool.query('SELECT * FROM "users";')
+    const result = await pool.query('SELECT * FROM users;')
     res.status(201).json(result.rows)
 });
 
 app.get('/taskbar/photo/:userId', async(req, res) => {
     let userId = req.params.userId;
     try {
-        let result = await pool.query('SELECT profile_image, username from "users" WHERE id=$1;', [userId]);
+        let result = await pool.query('SELECT profile_image, username from users WHERE id=$1;', [userId]);
         if (result.rows) {
             console.log(result.rows)
             res.json(result.rows);
